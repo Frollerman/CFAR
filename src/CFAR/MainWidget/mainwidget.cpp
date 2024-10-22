@@ -17,6 +17,8 @@ void MainWidget::initializeWidget()
 
     connect(stolbLE_, SIGNAL(editingFinished()), this, SLOT(checkVariables()));
     connect(strLE_, SIGNAL(editingFinished()), this, SLOT(checkVariables()));
+    connect(stolbLE_, SIGNAL(editingFinished()), this, SLOT(resetTableSize()));
+    connect(strLE_, SIGNAL(editingFinished()), this, SLOT(resetTableSize()));
     connect(XbLE_, SIGNAL(editingFinished()), this, SLOT(checkVariables()));
     connect(YbLE_, SIGNAL(editingFinished()), this, SLOT(checkVariables()));
     connect(XsLE_, SIGNAL(editingFinished()), this, SLOT(checkVariables()));
@@ -62,10 +64,12 @@ void MainWidget::initializeWidget()
     formLayout5_->addRow(tr("Превышения порога:"), porogTE_);
 
     loadButton_ = new QPushButton("Загрузить файл", this);
+    connect(loadButton_, SIGNAL(pressed()), this, SLOT(loadFile()));
 
     tableWidget_ = new QTableWidget(this);
     tableWidget_->setRowCount(strLE_->text().toInt());
     tableWidget_->setColumnCount(stolbLE_->text().toInt());
+    // tableWidget_->setEnabled(false);
 
     for(int i = 0; i < stolbLE_->text().toInt(); i++) {
         tableWidget_->setColumnWidth(i, 75);
@@ -99,6 +103,8 @@ void MainWidget::initializeWidget()
     btn3_->setIconSize(QSize(50, 50));
 
     calcBtn_ = new QPushButton("Рассчитать", this);
+    calcBtn_->setEnabled(false);
+    connect(calcBtn_, SIGNAL(pressed()), this, SLOT(calculate()));
 
     hBox1_->addWidget(btn1_);
     hBox1_->addLayout(formLayout1_);
@@ -125,7 +131,7 @@ void MainWidget::initializeWidget()
 
 void MainWidget::checkVariables()
 {
-    allVarsFine_ = false;
+    // loadButton_->setEnabled(false);
 
     int x = stolbLE_->text().toInt();
     int y = strLE_->text().toInt();
@@ -140,8 +146,10 @@ void MainWidget::checkVariables()
 
     if(x < 41 || y < 41) {
         btn1_->setIcon(QIcon(QPixmap(":/icons/cross.png")));
+        loadButton_->setEnabled(false);
     } else {
         btn1_->setIcon(QIcon(QPixmap(":/icons/check.png")));
+        loadButton_->setEnabled(true);
         xyFine = true;
     }
 
@@ -150,6 +158,7 @@ void MainWidget::checkVariables()
         bFine = true;
     } else {
         btn2_->setIcon(QIcon(QPixmap(":/icons/cross.png")));
+        calcBtn_->setEnabled(false);
     }
 
     if(xs < x && xb > xs && ys < y && yb > ys && (xs%2) && (ys%2)) {
@@ -157,10 +166,12 @@ void MainWidget::checkVariables()
         sFine = true;
     } else {
         btn3_->setIcon(QIcon(QPixmap(":/icons/cross.png")));
+        calcBtn_->setEnabled(false);
     }
 
     if(xyFine && bFine && sFine) {
-        allVarsFine_ = true;
+        loadButton_->setEnabled(true);
+        calcBtn_->setEnabled(true);
     }
 
 }
@@ -169,4 +180,110 @@ void MainWidget::resetTableSize()
 {
     tableWidget_->setRowCount(strLE_->text().toInt());
     tableWidget_->setColumnCount(stolbLE_->text().toInt());
+}
+
+void MainWidget::loadFile()
+{
+    QFile file(filePathLE_->text());
+    file.open(QIODevice::ReadOnly | QIODevice::Text);
+    QTextStream tStream(&file);
+    QString line;
+
+    if(file.isOpen()) {
+        while (!tStream.atEnd()) {
+            line += tStream.readLine();
+        }
+    } else {
+        filePathLE_->setText("Файл не был открыт!");
+        return;
+    }
+
+    QStringList list = line.split(" ");
+
+    for(int i = 0; i < strLE_->text().toInt(); i++) {
+        for(int j = 0; j < stolbLE_->text().toInt(); j++) {
+            QTableWidgetItem *newItem = new QTableWidgetItem(list.takeFirst());
+            tableWidget_->setItem(i, j, newItem);
+        }
+    }
+
+    calcBtn_->setEnabled(true);
+}
+
+void MainWidget::calculate()
+{
+    const int x = tableWidget_->rowCount();
+    const int y = tableWidget_->columnCount();
+
+    float mat[x][y];
+    float aux[x][y];
+
+    for(int i = 0; i < x; i++) {
+        for(int j = 0; j < y; j++) {
+            mat[i][j] = tableWidget_->item(i, j)->text().toFloat();
+        }
+    }
+
+    // Copy first row of mat[][] to aux[][]
+    for (int i = 0; i < y; i++)
+        aux[0][i] = mat[0][i];
+
+    // Do column wise sum
+    for (int i = 1; i < x; i++)
+        for (int j = 0; j < y; j++)
+            aux[i][j] = mat[i][j] + aux[i-1][j];
+
+    // Do row wise sum
+    for (int i = 0; i < x; i++)
+        for (int j = 1; j < y; j++)
+            aux[i][j] += aux[i][j-1];
+
+    int Xb = XbLE_->text().toInt();
+    int Yb = YbLE_->text().toInt();
+    int Xs = XsLE_->text().toInt();
+    int Ys = YsLE_->text().toInt();
+
+    QString porogText;
+
+    for(int i = Xb / 2; i < x - Xb / 2; i++) {
+        for(int j = Yb / 2; j < y - Yb / 2; j++) {
+            float Sb = aux[i + Xb / 2][j + Yb / 2];
+            float Ss = aux[i + Xs / 2][j + Ys / 2];
+
+            // calc Sb
+            if (i - Xb / 2 > 0)
+                Sb = Sb - aux[i - Xb / 2 - 1][j + Yb / 2];
+
+            if (j - Yb / 2 > 0)
+                Sb = Sb - aux[i + Xb / 2][j - Yb / 2 - 1];
+
+            if (i - Xb / 2 > 0 && j - Yb / 2 > 0)
+                Sb = Sb + aux[i - Xb / 2 - 1][j - Yb / 2 - 1];
+
+            // calc Ss
+            if (i - Xs / 2 > 0)
+                Ss = Ss - aux[i - Xs / 2 - 1][j + Ys / 2];
+
+            if (j - Ys / 2 > 0)
+                Ss = Ss - aux[i + Xs / 2][j - Ys / 2 - 1];
+
+            if (i - Xs / 2 > 0 && j - Ys / 2 > 0)
+                Ss = Ss + aux[i - Xs / 2 - 1][j - Ys / 2 - 1];
+
+            float sq = Xb * Yb - Xs * Ys;
+            float err = 0.01;
+            float Th = std::pow((1/err), (1/sq)) - 1;
+
+            float porog = (Sb - Ss) * Th;
+
+            if(mat[i][j] > porog) {
+                porogText += "Для ячейки (" + QString::number(i + 1) + "," + QString::number(j + 1) + ") = " + QString::number(mat[i][j]) +
+                             " Sb = " + QString::number(Sb) + " Ss = " + QString::number(Ss) + " Порог = " + QString::number(porog) + "\n";
+                porogText += "Порог превышен!\n";
+            }
+        }
+    }
+
+    porogTE_->setText(porogText);
+
 }

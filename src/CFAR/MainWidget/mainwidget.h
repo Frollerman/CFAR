@@ -10,6 +10,10 @@
 #include <QVBoxLayout>
 #include <QImage>
 #include <QTextEdit>
+#include <QFile>
+#include <QTextStream>
+#include <QStringList>
+#include <math.h>
 
 class MainWidget : public QWidget
 {
@@ -51,8 +55,6 @@ private:
 
     QPushButton *calcBtn_ = nullptr;
 
-    bool allVarsFine_ = false;
-
     void initializeWidget();
 
 signals:
@@ -60,6 +62,8 @@ signals:
 private slots:
     void checkVariables();
     void resetTableSize();
+    void loadFile();
+    void calculate();
 };
 
 #endif // MAINWIDGET_H
