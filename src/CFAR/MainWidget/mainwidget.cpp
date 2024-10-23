@@ -169,9 +169,12 @@ void MainWidget::checkVariables()
         calcBtn_->setEnabled(false);
     }
 
+    // если все значения в норме, активируем кнопки
     if(xyFine && bFine && sFine) {
         loadButton_->setEnabled(true);
-        calcBtn_->setEnabled(true);
+        if(isFileLoaded) {
+            calcBtn_->setEnabled(true);
+        }
     }
 
 }
@@ -207,6 +210,7 @@ void MainWidget::loadFile()
         }
     }
 
+    isFileLoaded = true;
     calcBtn_->setEnabled(true);
 }
 
@@ -218,26 +222,14 @@ void MainWidget::calculate()
     float mat[x][y];
     float aux[x][y];
 
+    // заполняем матрицу значениями из таблицы
     for(int i = 0; i < x; i++) {
         for(int j = 0; j < y; j++) {
             mat[i][j] = tableWidget_->item(i, j)->text().toFloat();
         }
     }
 
-    // // Copy first row of mat[][] to aux[][]
-    // for (int i = 0; i < y; i++)
-    //     aux[0][i] = mat[0][i];
-
-    // // Do column wise sum
-    // for (int i = 1; i < x; i++)
-    //     for (int j = 0; j < y; j++)
-    //         aux[i][j] = mat[i][j] + aux[i-1][j];
-
-    // // Do row wise sum
-    // for (int i = 0; i < x; i++)
-    //     for (int j = 1; j < y; j++)
-    //         aux[i][j] += aux[i][j-1];
-
+    // заполняем дополнительную матрицу суммами значений подматриц
     for (int i = 0; i < x; i++){
         for (int j = 0; j < y; j++) {
             aux[i][j] = mat[i][j];
@@ -254,82 +246,50 @@ void MainWidget::calculate()
 
     QString porogText;
 
-    for(int i = Xb / 2; i < x - Xb / 2; i++) {
-        for(int j = Yb / 2; j < y - Yb / 2; j++) {
+    // вычисляем порог для каждой подходящей ячейки
+    for(int i = Yb / 2; i < x - Yb / 2; i++) {
+        for(int j = Xb / 2; j < y - Xb / 2; j++) {
 
-            // int x1 = i - Xb / 2;
-            // int x2 = i + Xb / 2;
-            // int y1 = j - Yb / 2;
-            // int y2 = j + Yb / 2;
-
-
-            float Sb = aux[i + Xb / 2][j + Yb / 2];
-            float Ss = aux[i + Xs / 2][j + Ys / 2];
-
+            // изначально необходимые суммы - это суммы наибольшей подматрицыы (по нижнему правому краю)
+            float Sb = aux[i + Yb / 2][j + Xb / 2];
+            float Ss = aux[i + Ys / 2][j + Xs / 2];
 
             {
-                int x1 = i - Xb / 2;
-                int x2 = i + Xb / 2;
-                int y1 = j - Yb / 2;
-                int y2 = j + Yb / 2;
+                int x1 = i - Yb / 2;
+                int x2 = i + Yb / 2;
+                int y1 = j - Xb / 2;
+                int y2 = j + Xb / 2;
 
+                // если слева есть подматрица, то вычитаем сумму ее значений
                 if (y1 > 0) Sb -= aux[x2][y1-1];
+                // если сверху есть подматрица, то вычитаем сумму ее значений
                 if (x1 > 0) Sb -= aux[x1-1][y2];
+                // если и сверху, и слева были подматрицы, то
+                // добавляем подматрицу по диагонали слева сверху,
+                // так как ее сумма была вычтена дважды
                 if (x1 > 0 && y1 > 0) Sb += aux[x1-1][y1-1];
             }
 
-            // if (y1 > 0) Sb -= aux[x2][y1-1];
-            // if (x1 > 0) Sb -= aux[x1-1][y2];
-            // if (x1 > 0 && y1 > 0) Sb += aux[x1-1][y1-1];
+            // по аналогии вычисляем вторую сумму
             {
-                int x1 = i - Xs / 2;
-                int x2 = i + Xs / 2;
-                int y1 = j - Ys / 2;
-                int y2 = j + Ys / 2;
+                int x1 = i - Ys / 2;
+                int x2 = i + Ys / 2;
+                int y1 = j - Xs / 2;
+                int y2 = j + Xs / 2;
 
                 if (y1 > 0) Ss -= aux[x2][y1-1];
                 if (x1 > 0) Ss -= aux[x1-1][y2];
                 if (x1 > 0 && y1 > 0) Ss += aux[x1-1][y1-1];
             }
-            // if (y1 > 0) Ss -= aux[x2][y1-1];
-            // if (x1 > 0) Ss -= aux[x1-1][y2];
-            // if (x1 > 0 && y1 > 0) Ss += aux[x1-1][y1-1];
 
-            // if (j - Yb / 2 > 0) Sb -= aux[i + Xb / 2][j - Yb / 2 - 1];
-            // if (i - Xb / 2 > 0) Sb -= aux[i - Xb / 2 - 1][j + Yb / 2];
-            // if (i - Xb / 2 > 0 && j - Yb / 2 > 0) Sb += aux[i - Xb / 2 - 1][j - Yb / 2 - 1];
-
-            // if (j - Ys / 2 > 0) Ss -= aux[i + Xs / 2][j - Ys / 2 - 1];
-            // if (i - Xs / 2 > 0) Ss -= aux[i - Xs / 2 - 1][j + Ys / 2];
-            // if (i - Xs / 2 > 0 && j - Ys / 2 > 0) Ss += aux[i - Xs / 2 - 1][j - Ys / 2 - 1];
-
-            // // calc Sb
-            // if (i - Xb / 2 > 0)
-            //     Sb = Sb - aux[i - Xb / 2 - 1][j + Yb / 2];
-
-            // if (j - Yb / 2 > 0)
-            //     Sb = Sb - aux[i + Xb / 2][j - Yb / 2 - 1];
-
-            // if (i - Xb / 2 > 0 && j - Yb / 2 > 0)
-            //     Sb = Sb + aux[i - Xb / 2 - 1][j - Yb / 2 - 1];
-
-            // // calc Ss
-            // if (i - Xs / 2 > 0)
-            //     Ss = Ss - aux[i - Xs / 2 - 1][j + Ys / 2];
-
-
-            // if (j - Ys / 2 > 0)
-            //     Ss = Ss - aux[i + Xs / 2][j - Ys / 2 - 1];
-
-            // if (i - Xs / 2 > 0 && j - Ys / 2 > 0)
-            //     Ss = Ss + aux[i - Xs / 2 - 1][j - Ys / 2 - 1];
-
+            // вычисление и объявление переменных для порога
             float sq = Xb * Yb - Xs * Ys;
             float err = 0.01;
             float Th = std::pow((1/err), (1/sq)) - 1;
 
             float porog = (Sb - Ss) * Th;
 
+            // проверка условия на превышение порога
             if(mat[i][j] > porog) {
                 porogText += "Для ячейки (" + QString::number(i + 1) + "," + QString::number(j + 1) + ") = " + QString::number(mat[i][j]) +
                              " Sb = " + QString::number(Sb) + " Ss = " + QString::number(Ss) + " Порог = " + QString::number(porog) + "\n";

@@ -55,6 +55,8 @@ private:
 
     QPushButton *calcBtn_ = nullptr;
 
+    bool isFileLoaded = false;
+
     void initializeWidget();
 
 signals:
