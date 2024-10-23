@@ -224,19 +224,28 @@ void MainWidget::calculate()
         }
     }
 
-    // Copy first row of mat[][] to aux[][]
-    for (int i = 0; i < y; i++)
-        aux[0][i] = mat[0][i];
+    // // Copy first row of mat[][] to aux[][]
+    // for (int i = 0; i < y; i++)
+    //     aux[0][i] = mat[0][i];
 
-    // Do column wise sum
-    for (int i = 1; i < x; i++)
-        for (int j = 0; j < y; j++)
-            aux[i][j] = mat[i][j] + aux[i-1][j];
+    // // Do column wise sum
+    // for (int i = 1; i < x; i++)
+    //     for (int j = 0; j < y; j++)
+    //         aux[i][j] = mat[i][j] + aux[i-1][j];
 
-    // Do row wise sum
-    for (int i = 0; i < x; i++)
-        for (int j = 1; j < y; j++)
-            aux[i][j] += aux[i][j-1];
+    // // Do row wise sum
+    // for (int i = 0; i < x; i++)
+    //     for (int j = 1; j < y; j++)
+    //         aux[i][j] += aux[i][j-1];
+
+    for (int i = 0; i < x; i++){
+        for (int j = 0; j < y; j++) {
+            aux[i][j] = mat[i][j];
+            if (i > 0) aux[i][j] += aux[i-1][j];
+            if (j > 0) aux[i][j] += aux[i][j-1];
+            if (i > 0 && j > 0) aux[i][j] -= aux[i-1][j-1];
+        }
+    }
 
     int Xb = XbLE_->text().toInt();
     int Yb = YbLE_->text().toInt();
@@ -247,28 +256,73 @@ void MainWidget::calculate()
 
     for(int i = Xb / 2; i < x - Xb / 2; i++) {
         for(int j = Yb / 2; j < y - Yb / 2; j++) {
+
+            // int x1 = i - Xb / 2;
+            // int x2 = i + Xb / 2;
+            // int y1 = j - Yb / 2;
+            // int y2 = j + Yb / 2;
+
+
             float Sb = aux[i + Xb / 2][j + Yb / 2];
             float Ss = aux[i + Xs / 2][j + Ys / 2];
 
-            // calc Sb
-            if (i - Xb / 2 > 0)
-                Sb = Sb - aux[i - Xb / 2 - 1][j + Yb / 2];
 
-            if (j - Yb / 2 > 0)
-                Sb = Sb - aux[i + Xb / 2][j - Yb / 2 - 1];
+            {
+                int x1 = i - Xb / 2;
+                int x2 = i + Xb / 2;
+                int y1 = j - Yb / 2;
+                int y2 = j + Yb / 2;
 
-            if (i - Xb / 2 > 0 && j - Yb / 2 > 0)
-                Sb = Sb + aux[i - Xb / 2 - 1][j - Yb / 2 - 1];
+                if (y1 > 0) Sb -= aux[x2][y1-1];
+                if (x1 > 0) Sb -= aux[x1-1][y2];
+                if (x1 > 0 && y1 > 0) Sb += aux[x1-1][y1-1];
+            }
 
-            // calc Ss
-            if (i - Xs / 2 > 0)
-                Ss = Ss - aux[i - Xs / 2 - 1][j + Ys / 2];
+            // if (y1 > 0) Sb -= aux[x2][y1-1];
+            // if (x1 > 0) Sb -= aux[x1-1][y2];
+            // if (x1 > 0 && y1 > 0) Sb += aux[x1-1][y1-1];
+            {
+                int x1 = i - Xs / 2;
+                int x2 = i + Xs / 2;
+                int y1 = j - Ys / 2;
+                int y2 = j + Ys / 2;
 
-            if (j - Ys / 2 > 0)
-                Ss = Ss - aux[i + Xs / 2][j - Ys / 2 - 1];
+                if (y1 > 0) Ss -= aux[x2][y1-1];
+                if (x1 > 0) Ss -= aux[x1-1][y2];
+                if (x1 > 0 && y1 > 0) Ss += aux[x1-1][y1-1];
+            }
+            // if (y1 > 0) Ss -= aux[x2][y1-1];
+            // if (x1 > 0) Ss -= aux[x1-1][y2];
+            // if (x1 > 0 && y1 > 0) Ss += aux[x1-1][y1-1];
 
-            if (i - Xs / 2 > 0 && j - Ys / 2 > 0)
-                Ss = Ss + aux[i - Xs / 2 - 1][j - Ys / 2 - 1];
+            // if (j - Yb / 2 > 0) Sb -= aux[i + Xb / 2][j - Yb / 2 - 1];
+            // if (i - Xb / 2 > 0) Sb -= aux[i - Xb / 2 - 1][j + Yb / 2];
+            // if (i - Xb / 2 > 0 && j - Yb / 2 > 0) Sb += aux[i - Xb / 2 - 1][j - Yb / 2 - 1];
+
+            // if (j - Ys / 2 > 0) Ss -= aux[i + Xs / 2][j - Ys / 2 - 1];
+            // if (i - Xs / 2 > 0) Ss -= aux[i - Xs / 2 - 1][j + Ys / 2];
+            // if (i - Xs / 2 > 0 && j - Ys / 2 > 0) Ss += aux[i - Xs / 2 - 1][j - Ys / 2 - 1];
+
+            // // calc Sb
+            // if (i - Xb / 2 > 0)
+            //     Sb = Sb - aux[i - Xb / 2 - 1][j + Yb / 2];
+
+            // if (j - Yb / 2 > 0)
+            //     Sb = Sb - aux[i + Xb / 2][j - Yb / 2 - 1];
+
+            // if (i - Xb / 2 > 0 && j - Yb / 2 > 0)
+            //     Sb = Sb + aux[i - Xb / 2 - 1][j - Yb / 2 - 1];
+
+            // // calc Ss
+            // if (i - Xs / 2 > 0)
+            //     Ss = Ss - aux[i - Xs / 2 - 1][j + Ys / 2];
+
+
+            // if (j - Ys / 2 > 0)
+            //     Ss = Ss - aux[i + Xs / 2][j - Ys / 2 - 1];
+
+            // if (i - Xs / 2 > 0 && j - Ys / 2 > 0)
+            //     Ss = Ss + aux[i - Xs / 2 - 1][j - Ys / 2 - 1];
 
             float sq = Xb * Yb - Xs * Ys;
             float err = 0.01;
